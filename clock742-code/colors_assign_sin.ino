@@ -1,70 +1,97 @@
 // colors_assign_sin.ino
+//
+// face1 (home, Eastern): circadian arc shifts with actual sunrise/sunset
+//   from solar.ino -- waypoints are dawn/sunrise/sunset/dusk each day.
+//
+// face0, face2 (China, West Coast): fixed time-based arc, unchanged.
 
-#define TOUCH_THRESHOLD 10000
+// Forward declarations for globals defined in solar.ino
+extern float sunriseMins;
+extern float sunsetMins;
+extern float dawnMins;
+extern float duskMins;
 
-float lerpf(float a, float b, float t) {
-  return a + (b - a) * t;
+float lerpf(float a, float b, float t) { return a + (b - a) * t; }
+float clampf(float t) { return t < 0.0 ? 0.0 : t > 1.0 ? 1.0 : t; }
+float windowProgress(int mins, int s, int e) {
+  return clampf((float)(mins - s) / (float)(e - s));
 }
 
-float clampf(float t) {
-  if (t < 0.0) return 0.0;
-  if (t > 1.0) return 1.0;
-  return t;
+// Fixed arc for non-home faces (face0, face2)
+void colors_assign_fixed(int mins) {
+  float r, g, b;
+  float nr=120,ng=20, nb=200;
+  float dr=60, dg=160,db=180;
+  float mr=100,mg=180,mb=120;
+  float ar=220,ag=140,ab=40;
+  float er=240,eg=100,eb=10;
+  float lr=160,lg=20, lb=180;
+
+  if      (mins < 300)  { r=nr;g=ng;b=nb; }
+  else if (mins < 480)  { float t=windowProgress(mins,300,480);  r=lerpf(nr,dr,t);g=lerpf(ng,dg,t);b=lerpf(nb,db,t); }
+  else if (mins < 720)  { float t=windowProgress(mins,480,720);  r=lerpf(dr,mr,t);g=lerpf(dg,mg,t);b=lerpf(db,mb,t); }
+  else if (mins < 1020) { float t=windowProgress(mins,720,1020); r=lerpf(mr,ar,t);g=lerpf(mg,ag,t);b=lerpf(mb,ab,t); }
+  else if (mins < 1200) { float t=windowProgress(mins,1020,1200);r=lerpf(ar,er,t);g=lerpf(ag,eg,t);b=lerpf(ab,eb,t); }
+  else                  { float t=windowProgress(mins,1200,1440);r=lerpf(er,lr,t);g=lerpf(eg,lg,t);b=lerpf(eb,lb,t); }
+
+  float scale   = color_scale / 5.0;
+  color_red   = (int)(r * scale);
+  color_green = (int)(g * scale);
+  color_blue  = (int)(b * scale);
 }
 
-float windowProgress(int mins, int startMins, int endMins) {
-  return clampf((float)(mins - startMins) / (float)(endMins - startMins));
+// Solar arc for home face (face1)
+void colors_assign_solar(int mins) {
+  float r, g, b;
+  int   noonMins = (int)((sunriseMins + sunsetMins) / 2.0);
+
+  float nr=120,ng=20, nb=200;
+  float dn=40, dg=80, db=200;
+  float sr=100,sg=160,sb=220;
+  float mn=200,mg=210,mb=220;
+  float st=240,sg2=150,sb2=60;
+  float dk=200,dkg=30,dkb=10;
+  float lr=120,lg=20, lb=200;
+
+  if (mins < (int)dawnMins) {
+    r=nr;g=ng;b=nb;
+  } else if (mins < (int)sunriseMins) {
+    float t=windowProgress(mins,(int)dawnMins,(int)sunriseMins);
+    r=lerpf(nr,sr,t);g=lerpf(ng,sg,t);b=lerpf(nb,sb,t);
+  } else if (mins < noonMins) {
+    float t=windowProgress(mins,(int)sunriseMins,noonMins);
+    r=lerpf(sr,mn,t);g=lerpf(sg,mg,t);b=lerpf(sb,mb,t);
+  } else if (mins < (int)sunsetMins) {
+    float t=windowProgress(mins,noonMins,(int)sunsetMins);
+    r=lerpf(mn,st,t);g=lerpf(mg,sg2,t);b=lerpf(mb,sb2,t);
+  } else if (mins < (int)duskMins) {
+    float t=windowProgress(mins,(int)sunsetMins,(int)duskMins);
+    r=lerpf(st,dk,t);g=lerpf(sg2,dkg,t);b=lerpf(sb2,dkb,t);
+  } else {
+    float t=windowProgress(mins,(int)duskMins,1440);
+    r=lerpf(dk,lr,t);g=lerpf(dkg,lg,t);b=lerpf(dkb,lb,t);
+  }
+
+  float scale   = color_scale / 5.0;
+  color_red   = (int)(r * scale);
+  color_green = (int)(g * scale);
+  color_blue  = (int)(b * scale);
 }
 
 void colors_assign() {
   int mins = hour_total * 60 + minute_total;
 
-  float r, g, b;
+  if (faceID == 1) {
+    colors_assign_solar(mins);
+  } else {
+    colors_assign_fixed(mins);
+  }
 
-  // Waypoints
-  float nr=30,  ng=0,   nb=60;   // night: violet
-  float dr=100, dg=140, db=220;  // dawn: blue-white
-  float mr=220, mg=230, mb=255;  // morning: bright white
-  float ar=255, ag=160, ab=60;   // afternoon: amber
-  float er=220, eg=30,  eb=0;    // evening: red
-  float lr=50,  lg=0,   lb=80;   // late night: violet
-
-  if      (mins < 300)  { r=nr; g=ng; b=nb; }
-  else if (mins < 480)  { float t=windowProgress(mins,300,480);  r=lerpf(nr,dr,t); g=lerpf(ng,dg,t); b=lerpf(nb,db,t); }
-  else if (mins < 720)  { float t=windowProgress(mins,480,720);  r=lerpf(dr,mr,t); g=lerpf(dg,mg,t); b=lerpf(db,mb,t); }
-  else if (mins < 1020) { float t=windowProgress(mins,720,1020); r=lerpf(mr,ar,t); g=lerpf(mg,ag,t); b=lerpf(mb,ab,t); }
-  else if (mins < 1200) { float t=windowProgress(mins,1020,1200);r=lerpf(ar,er,t); g=lerpf(ag,eg,t); b=lerpf(ab,eb,t); }
-  else                  { float t=windowProgress(mins,1200,1440);r=lerpf(er,lr,t); g=lerpf(eg,lg,t); b=lerpf(eb,lb,t); }
-
-  float scale = color_scale / 5.0;
-  color_red   = (int)(r * scale);
-  color_green = (int)(g * scale);
-  color_blue  = (int)(b * scale);
-
-  Serial.print("CIRC mins="); Serial.print(mins);
-  Serial.print(" pretouch RGB=("); Serial.print(color_red);
-  Serial.print(","); Serial.print(color_green);
-  Serial.print(","); Serial.print(color_blue); Serial.print(")");
-  Serial.print(" T3="); Serial.print(touch_sensor_value3);
-  Serial.print(" T5="); Serial.print(touch_sensor_value5);
-  Serial.print(" T7="); Serial.print(touch_sensor_value7);
-  Serial.print(" T9="); Serial.println(touch_sensor_value9);
-
-  // ESP32 touch reads HIGH when idle, LOW when touched
+  // Touch color overrides
   if (touch_sensor_value3 < TOUCH_THRESHOLD) {
     color_red=200; color_green=0; color_blue=0;
-    Serial.println("TOUCH OVERRIDE T3 fired!");
   }
   if (touch_sensor_value9 < TOUCH_THRESHOLD) {
     color_red=0; color_green=200; color_blue=0;
-    Serial.println("TOUCH OVERRIDE T9 fired!");
-  }
-  if ((touch_sensor_value5 < TOUCH_THRESHOLD) && (color_scale < 5)) {
-    color_scale++;
-    Serial.println("TOUCH OVERRIDE T5 fired!");
-  }
-  if ((touch_sensor_value7 < TOUCH_THRESHOLD) && (color_scale > 1)) {
-    color_scale--;
-    Serial.println("TOUCH OVERRIDE T7 fired!");
   }
 }

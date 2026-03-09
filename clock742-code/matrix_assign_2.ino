@@ -1,25 +1,42 @@
-void matrix_assign_2(){
-    
-//colon       
-//if (minute2 != minute2_now) {//changes matrix only when minute advances
-  //pixels.clear();
-  cursor = 0 + faceID*85;
-  for(int k=0; k<=26;k++){ 
+// matrix_assign_2.ino -- face0 (China) and face2 (West Coast)
+// Same as matrix_assign with AM/PM indicator on col 8.
 
-  int randNumber = random(2);
-  int randNumber1 = random(27);
-  int randNumber2 = random(54);
-  
-  if (randNumber == 1){ //random pixels (1/2)
-      pixels.setPixelColor(cursor, 0);  
+int matrixLED2(int col, int row, int faceOffset) {
+  int physCol = 8 - col;
+  int baseIdx = physCol * 3;
+  int ledRow  = (physCol % 2 == 0) ? row : (2 - row);
+  return faceOffset + baseIdx + ledRow;
+}
+
+void matrix_assign_2(int r, int g, int b) {
+  int litLEDs    = 24 - hour_total;
+  int faceOffset = faceID * 85;
+
+  float remaining = max(0.1f, (float)litLEDs / 24.0f);
+  float scale     = MATRIX_BRIGHTNESS * remaining;
+
+  uint32_t onColor = pixels.Color(
+    (uint8_t)(r * scale),
+    (uint8_t)(g * scale),
+    (uint8_t)(b * scale)
+  );
+
+  // Cols 0-7: gravity drain
+  int ledsToLight = litLEDs;
+  for (int col = 0; col < 8; col++) {
+    for (int row = 2; row >= 0; row--) {
+      uint32_t c;
+      if (ledsToLight-- > 0) {
+        c = onColor;
+      } else {
+        c = (random(20) == 0)
+          ? pixels.Color(
+              (uint8_t)(8 * MATRIX_BRIGHTNESS),
+              (uint8_t)(8 * MATRIX_BRIGHTNESS),
+              (uint8_t)(8 * MATRIX_BRIGHTNESS))
+          : 0;
+      }
+      pixels.setPixelColor(matrixLED2(col, row, faceOffset), c);
+    }
   }
-  if (randNumber1 == k){ //random pixels (1/27)
-      pixels.setPixelColor(cursor, Wheel(minutes_map-25));
-  }
-  if (randNumber2 == k){ //random pixels (1/54)
-      pixels.setPixelColor(cursor, Wheel(minutes_map-75));
-  }
-    cursor ++;
-  }
-  pixels.show();
 }

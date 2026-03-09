@@ -1,104 +1,47 @@
-void digit_assign(){
-int delay_between_numbers = 50;
-  
-  if (digit_number==0){
+// v3 -- non-blocking delays using millis() to avoid watchdog resets
+void digit_assign() {
+  int delay_between_numbers = 40;
 
-  for(int scroll_value = 0; scroll_value<=digit_value; scroll_value++){ 
-  
-  cursor = 27 + faceID*85;
-  cursor1 = cursor;
-  
-  for(int k=0; k<=13;k++){ //clear digit
-  pixels.setPixelColor(cursor1, pixels.Color(0, 0, 0));
-  cursor1 ++;
-  }
-  pixels.show();
-
-  if (hour1 != 0){ //keeps from scrolling on blank preceeding digit
-  delay(delay_between_numbers);
-  for(int k=0; k<=13;k++){
-  //Serial.print("cursor "); Serial.println(cursor); 
-  // Serial.print(digits[digit][k]);
-  if (digits[scroll_value][k]== 1){pixels.setPixelColor(cursor, pixels.Color(color_red, color_green, color_blue));}
-  else if (digits[scroll_value][k]==0){pixels.setPixelColor(cursor, pixels.Color(0, 0, 0));};
-  cursor ++;
-  }
-  pixels.show();
-  //delay(5);
-  }
-  }
+  int baseOffset = faceID * 85;
+  int digitStart;
+  switch (digit_number) {
+    case 0: digitStart = 27 + baseOffset; break;
+    case 1: digitStart = 41 + baseOffset; break;
+    case 2: digitStart = 57 + baseOffset; break;
+    case 3: digitStart = 71 + baseOffset; break;
+    default: return;
   }
 
-  
-  if (digit_number==1){
+  // Skip leading zero on hour tens digit
+  if (digit_number == 0 && digit_value == 0) {
+    // Clear digit 0 and leave blank
+    for (int k = 0; k < 14; k++)
+      pixels.setPixelColor(digitStart + k, pixels.Color(0, 0, 0));
+    pixels.show();
+    return;
+  }
 
-  for(int scroll_value = 0; scroll_value<=digit_value; scroll_value++){ 
-    
-  cursor = 41 + faceID*85;
-  cursor1 = cursor;
-  
-  for(int k=0; k<=13;k++){ //clear digit
-  pixels.setPixelColor(cursor1, pixels.Color(0, 0, 0));
-  cursor1 ++;
-  }
-  pixels.show();
-  delay(delay_between_numbers);
-  for(int k=0; k<=13;k++){ 
-  // Serial.print(digits[digit][k]);
-  if (digits[scroll_value][k]== 1){pixels.setPixelColor(cursor, pixels.Color(color_red, color_green, color_blue));}
-  else if (digits[scroll_value][k]==0){pixels.setPixelColor(cursor, pixels.Color(0, 0, 0));};
-  cursor ++;
-  }
-  pixels.show();
-  //delay(50);
-  }
-  }
-  
-  if (digit_number==2){
+  for (int scroll_value = 0; scroll_value <= digit_value; scroll_value++) {
+    cursor = digitStart;
 
-  for(int scroll_value = 0; scroll_value<=digit_value; scroll_value++){ 
-    
-  cursor = 57 + faceID*85;
-  cursor1 = cursor;
+    // Clear digit
+    for (int k = 0; k < 14; k++)
+      pixels.setPixelColor(digitStart + k, pixels.Color(0, 0, 0));
+    pixels.show();
 
-  for(int k=0; k<=13;k++){ //clear digit
-  pixels.setPixelColor(cursor1, pixels.Color(0, 0, 0));
-  cursor1 ++;
-  }
-  pixels.show();
-  delay(delay_between_numbers);
-  for(int k=0; k<=13;k++){ 
-  // Serial.print(digits[digit][k]);
-  if (digits[scroll_value][k]== 1){pixels.setPixelColor(cursor, pixels.Color(color_red, color_green, color_blue));}
-  else if (digits[scroll_value][k]==0){pixels.setPixelColor(cursor, pixels.Color(0, 0, 0));};
-  cursor ++;
-  }
-  pixels.show();
-  //delay(50);
-  }
-  }
-  
-  if (digit_number==3){
-    
-  for(int scroll_value = 0; scroll_value<=digit_value; scroll_value++){ 
-    
-  cursor = 71 + faceID*85;
-  cursor1 = cursor;
-  
-  for(int k=0; k<=13;k++){ //clear digit
-  pixels.setPixelColor(cursor1, pixels.Color(0, 0, 0));
-  cursor1 ++;
-  }
-  pixels.show();
-  delay(delay_between_numbers);
-  for(int k=0; k<=13;k++){ 
-  // Serial.print(digits[digit][k]);
-  if (digits[scroll_value][k]== 1){pixels.setPixelColor(cursor, pixels.Color(color_red, color_green, color_blue));}
-  else if (digits[scroll_value][k]==0){pixels.setPixelColor(cursor, pixels.Color(0, 0, 0));};
-  cursor ++;
-  }
-  pixels.show();
-  //delay(50);
-  }
+    // Draw digit
+    unsigned long t = millis();
+    while (millis() - t < delay_between_numbers) {
+      ArduinoOTA.handle();  // keep OTA alive during animation
+    }
+
+    for (int k = 0; k < 14; k++) {
+      if (digits[scroll_value][k] == 1)
+        pixels.setPixelColor(cursor, pixels.Color(color_red, color_green, color_blue));
+      else
+        pixels.setPixelColor(cursor, pixels.Color(0, 0, 0));
+      cursor++;
+    }
+    pixels.show();
   }
 }
