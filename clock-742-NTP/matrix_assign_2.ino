@@ -12,8 +12,7 @@ void matrix_assign_2(int r, int g, int b) {
   int litLEDs    = 24 - hour_total;
   int faceOffset = faceID * 85;
 
-  float remaining = max(0.1f, (float)litLEDs / 24.0f);
-  float scale     = MATRIX_BRIGHTNESS * remaining;
+  float scale     = MATRIX_BRIGHTNESS;  // constant brightness, no hourly fade
 
   uint32_t onColor = pixels.Color(
     (uint8_t)(r * scale),

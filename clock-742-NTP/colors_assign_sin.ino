@@ -6,6 +6,11 @@
 // face0, face2 (China, West Coast): fixed time-based arc, unchanged.
 
 // Forward declarations for globals defined in solar.ino
+
+// Matrix arc color globals -- set by colors_assign, used by face0/1/2 for matrix
+int matrix_arc_r = 0;
+int matrix_arc_g = 0;
+int matrix_arc_b = 0;
 extern float sunriseMins;
 extern float sunsetMins;
 extern float dawnMins;
@@ -81,10 +86,28 @@ void colors_assign_solar(int mins) {
 void colors_assign() {
   int mins = hour_total * 60 + minute_total;
 
+  // Run arc to calculate circadian colors
   if (faceID == 1) {
     colors_assign_solar(mins);
   } else {
     colors_assign_fixed(mins);
+  }
+
+  // Snapshot arc colors for matrix (restored in renderFace after digit animation)
+  matrix_arc_r = color_red;
+  matrix_arc_g = color_green;
+  matrix_arc_b = color_blue;
+
+  // Digits: fixed AM/PM color matching colon, scaled by color_scale
+  float scale = color_scale / 5.0;
+  if (is_am) {
+    color_red   = (int)(60  * scale);
+    color_green = (int)(160 * scale);
+    color_blue  = (int)(255 * scale);
+  } else {
+    color_red   = (int)(220 * scale);
+    color_green = 0;
+    color_blue  = 0;
   }
 
   // Touch color overrides

@@ -6,6 +6,9 @@
 #include "secrets.h"
 
 // Solar globals defined in solar.ino
+
+// Matrix arc color globals defined in colors_assign_sin.ino
+extern int matrix_arc_r, matrix_arc_g, matrix_arc_b;
 extern float sunriseMins;
 extern float sunsetMins;
 extern float dawnMins;
@@ -376,40 +379,23 @@ void renderFace(int id, const char* tz) {
   dots_assign();
 }
 
-// Write AM/PM column (col 8) for a face -- called after matrix to avoid
-// digit animation overwriting it. Uses is_am and faceID from snapshot.
-void ampmColumn(bool face_is_am, int face_id, bool useMatrixLED1) {
-  int faceOffset = face_id * 85;
-  uint32_t ampmColor = face_is_am
-    ? pixels.Color((uint8_t)(60  * MATRIX_BRIGHTNESS), (uint8_t)(160 * MATRIX_BRIGHTNESS), (uint8_t)(255 * MATRIX_BRIGHTNESS))
-    : pixels.Color((uint8_t)(220 * MATRIX_BRIGHTNESS), 0, 0);
-  for (int row = 0; row < 3; row++) {
-    int physCol = 8;  // col 8 -> physCol = 8-8 = 0
-    int baseIdx = 0;
-    int ledRow  = row;  // physCol 0 is even, no flip
-    pixels.setPixelColor(faceOffset + baseIdx + ledRow, ampmColor);
-  }
-}
 
 // =============================================================
 //  Clock faces
 // =============================================================
 void face0() {
   renderFace(0, TZ_CHINA);
-  matrix_assign_2(color_red, color_green, color_blue);
-  ampmColumn(is_am, 0, false);
+  matrix_assign_2(matrix_arc_r, matrix_arc_g, matrix_arc_b);
   pixels.show();
 }
 void face1() {
   renderFace(1, TZ_EAST);
-  matrix_assign(color_red, color_green, color_blue);
-  ampmColumn(is_am, 1, true);
+  matrix_assign(matrix_arc_r, matrix_arc_g, matrix_arc_b);
   pixels.show();
 }
 void face2() {
   renderFace(2, TZ_WEST);
-  matrix_assign_2(color_red, color_green, color_blue);
-  ampmColumn(is_am, 2, false);
+  matrix_assign_2(matrix_arc_r, matrix_arc_g, matrix_arc_b);
   pixels.show();
 }
 
